@@ -49,6 +49,8 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
+from comet import download_model, load_from_checkpoint # added for comet metric
+import pdb
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -455,6 +457,10 @@ def main():
             ]
 
         model_inputs["labels"] = labels["input_ids"]
+
+        print(model_inputs)
+        pdb.set_trace() # python debugger
+
         return model_inputs
 
     if training_args.do_train:
@@ -545,7 +551,17 @@ def main():
         decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
         result = metric.compute(predictions=decoded_preds, references=decoded_labels)
-        result = {"bleu": result["score"]}
+        
+        # added for comet computation
+        # COMET_MODEL = "wmt21-cometinho-da" 
+        # model_path = download_model(COMET_MODEL)
+        # model = load_from_checkpoint(model_path)
+        # comet_data = [{"src": src, "mt": mt, "ref": ref} for src, mt, ref in
+        #           zip(labels, decoded_preds, decoded_labels)] # source_ref, target_pred, target_ref
+
+        result = {"bleu": result["score"],
+                # "comet": model.predict(comet_data, gpus=0),
+                }
 
         prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
         result["gen_len"] = np.mean(prediction_lens)
